@@ -59,6 +59,7 @@ func (srv *Server) ListenAndServe() error {
 
 func (srv *Server) acceptConnections() {
 	defer srv.wg.Done()
+	defer srv.listener.Close()
 
 	for {
 		select {
@@ -88,22 +89,30 @@ func (srv *Server) handleConnections() {
 				conn:   conn,
 				Header: make(Header),
 			}
-			if err := req.ReadRequest(); err != nil {
-				log.Println(err.Error())
-			}
-
 			res := &Response{
 				Request: req,
 				Header:  make(Header),
 			}
-			if c, ok := req.Header.Get("Connection"); ok && c == "keep-alive" && req.Proto == "HTTP/1.1" {
-				conn.(*net.TCPConn).SetKeepAlive(true)
-				conn.(*net.TCPConn).SetKeepAlivePeriod(time.Second * time.Duration(srv.getKeepAliveHeuristic(-1)))
+
+			if err := req.ReadRequest(); err != nil {
+				log.Println(err.Error())
+				res.StatusCode = StatusInternalServerError
+				go ErrorHandler(req, res)
+				continue
 			}
+			if c, ok := req.Header.Get("Connection"); ok && c == "keep-alive" && req.Proto == "HTTP/1.1" {
+				timeout, max := srv.getKeepAliveHeuristic(-1)
+				conn.(*net.TCPConn).SetKeepAlive(true)
+				conn.(*net.TCPConn).SetKeepAlivePeriod(time.Second * time.Duration(timeout))
+				res.Header.Add("Keep-Alive", fmt.Sprintf("timeout=%d, max=%d", timeout, max))
+			}
+
 			handler, err := srv.Router.GetRoute(req.URL.Path)
 
 			if err != nil {
-				log.Println(err)
+				res.StatusCode = StatusBadRequest
+				go ErrorHandler(req, res)
+				continue
 			}
 			go handler(req, res)
 		}
@@ -129,9 +138,9 @@ func (srv *Server) Shutdown(ctx context.Context) {
 	}
 }
 
-func (srv *Server) getKeepAliveHeuristic(n int) int {
+func (srv *Server) getKeepAliveHeuristic(n int) (int, int) {
 	if n == -1 {
-		return 5
+		return 15, 100
 	}
-	return 0
+	return 0, 0
 }

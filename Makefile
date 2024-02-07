@@ -3,9 +3,9 @@
 all: local
 
 build_local:
-	go build -o bin/slug
+	@go build -o bin/slug
 run_local:
-	. ./.env && ./bin/slug -document_root=$$DOCUMENT_ROOT -port=$$PORT -timeout=$$TIMEOUT
+	@. ./.env && ./bin/slug -document_root=$$DOCUMENT_ROOT -port=$$PORT -timeout=$$TIMEOUT
 local: build_local run_local
 
 build_docker:

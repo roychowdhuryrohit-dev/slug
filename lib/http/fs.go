@@ -40,7 +40,6 @@ func Read(f *os.File) ([]byte, error) {
 	bs := make([]byte, stat.Size())
 	_, err = bufio.NewReader(f).Read(bs)
 	if err != nil && err != io.EOF {
-		fmt.Println(err)
 		return nil, fmt.Errorf("failed to read file")
 	}
 	return bs, nil
@@ -113,37 +112,9 @@ func FileServer(d Dir) (Handler, error) {
 		return nil, fmt.Errorf("invalid dir path: %s", d)
 	}
 
-	errorHandler := func(r *Request, w *Response) {
-		if err := w.WriteStatusLine(); err != nil {
-			log.Println(err.Error())
-		}
-		w.Header.Set("Content-Type", "text/html")
-		w.Body = []byte(
-			`<!DOCTYPE html>
-			<html>
-				<body>
-					<h1>` + w.StatusCode.GetStatus() + `</h1>
-				</body>
-			</html>`)
-		w.Header.Set("Content-Length", strconv.Itoa(len(w.Body)))
-		if err := w.WriteHeader(); err != nil {
-			log.Println(err.Error())
-		}
-		if err := w.WriteBody(); err != nil {
-			log.Println(err.Error())
-		}
-
-		host, ok := r.Header.Get("Host")
-		if !ok {
-			host = ""
-		}
-		log.Printf("%s %s %s %s %v\n", host, r.Method, r.URL.Path, r.Proto, w.StatusCode)
-	}
-
-	handler := func(r *Request, w *Response) {
-		d := d
-		eh := errorHandler
+	fileHandler := func(r *Request, w *Response) {
 		defer w.Flush()
+		d := d
 		reqPath := r.URL.Path
 		if strings.HasSuffix(reqPath, "/") {
 			w.StatusCode = StatusMovedPermanently
@@ -167,26 +138,26 @@ func FileServer(d Dir) (Handler, error) {
 		if err != nil {
 			log.Println(err.Error())
 			w.StatusCode = StatusNotFound
-			eh(r, w)
+			ErrorHandler(r, w)
 			return
 		}
 		if r.Proto != "HTTP/1.1" && r.Proto != "HTTP/1.0" {
 			w.StatusCode = StatusHTTPVersionNotSupported
-			eh(r, w)
+			ErrorHandler(r, w)
 			return
 		} else {
 			w.Proto = r.Proto
 		}
 		if r.Method != "GET" {
 			w.StatusCode = StatusMethodNotAllowed
-			eh(r, w)
+			ErrorHandler(r, w)
 			return
 		}
 		fileData, err := Read(file)
 		if err != nil {
 			log.Println(err.Error())
 			w.StatusCode = StatusNotFound
-			eh(r, w)
+			ErrorHandler(r, w)
 			return
 		}
 		w.Body = fileData
@@ -204,13 +175,9 @@ func FileServer(d Dir) (Handler, error) {
 			log.Println(err.Error())
 		}
 
-		host, ok := r.Header.Get("Host")
-		if !ok {
-			host = ""
-		}
-		log.Printf("%s %s %s %s %v\n", host, r.Method, r.URL.Path, r.Proto, w.StatusCode)
+		log.Printf("%s %s %s %v\n", r.Method, r.URL.Path, r.Proto, w.StatusCode)
 	}
 
 	fr.routesMap = make(map[string]Handler)
-	return handler, nil
+	return fileHandler, nil
 }

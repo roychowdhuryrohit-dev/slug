@@ -2,6 +2,9 @@ package http
 
 import (
 	"fmt"
+	"log"
+	"strconv"
+	"time"
 )
 
 type BasicRouter struct {
@@ -36,4 +39,31 @@ func NewBasicRouter() *BasicRouter {
 	return &r
 }
 
-//TODO Register all possible paths for serving files
+func ErrorHandler(r *Request, w *Response) {
+	defer w.Flush()
+	if err := w.WriteStatusLine(); err != nil {
+		log.Println(err.Error())
+	}
+	w.Header.Set("Server", "Slug")
+	w.Header.Set("Date", time.Now().Format(time.RFC1123))
+	w.Header.Set("Content-Type", "text/html")
+	w.Body = []byte(
+		`<!DOCTYPE html>
+		<html>
+			<body>
+				<h1>` + w.StatusCode.GetStatus() + `</h1>
+			</body>
+		</html>`)
+	w.Header.Set("Content-Length", strconv.Itoa(len(w.Body)))
+	if err := w.WriteHeader(); err != nil {
+		log.Println(err.Error())
+	}
+	if err := w.WriteBody(); err != nil {
+		log.Println(err.Error())
+	}
+
+	if r.URL != nil {
+		log.Printf("%s %s %s %v\n", r.Method, r.URL.Path, r.Proto, w.StatusCode)
+	}
+
+}

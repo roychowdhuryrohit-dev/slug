@@ -39,9 +39,12 @@ func (r *Request) ReadRequest() error {
 	for {
 		message, err := reader.ReadString('\n')
 		if err != nil {
-			// return errors.New("unable to parse request header line (no newline found)")
-			return err
+			return errors.New("unable to parse request header line (no newline found)")
 		}
+		if strings.HasPrefix(message, "\r\n") {
+			break
+		}
+		// fmt.Print(strings.Cut(message, " "))
 		headerKey, headerValues, found := strings.Cut(message, " ")
 		if !found {
 			return fmt.Errorf("unable to parse request header line (no whitespace found) - %s", message)
@@ -78,6 +81,7 @@ func (r *Request) ReadRequest() error {
 				r.Header.Add(headerKey, headerVal)
 			}
 		}
+
 		if strings.HasSuffix(message, "\r\n\r\n") {
 			break
 		}
@@ -167,6 +171,7 @@ func (w *Response) WriteBody() error {
 }
 
 func (w *Response) Flush() {
+	defer w.Request.conn.Close()
 	defer w.writer.Flush()
 
 }
