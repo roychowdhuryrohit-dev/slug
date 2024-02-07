@@ -145,9 +145,9 @@ func FileServer(d Dir) (Handler, error) {
 		eh := errorHandler
 		defer w.Flush()
 		reqPath := r.URL.Path
-		if strings.HasSuffix(reqPath,"/") {
+		if strings.HasSuffix(reqPath, "/") {
 			w.StatusCode = StatusMovedPermanently
-			w.Header.Set("Location", "/index.html")
+			w.Header.Set("Location", fmt.Sprintf("%sindex.html", reqPath))
 			if err := w.WriteStatusLine(); err != nil {
 				log.Println(err.Error())
 			}
@@ -161,9 +161,9 @@ func FileServer(d Dir) (Handler, error) {
 			log.Printf("%s %s %s %s %v\n", host, r.Method, r.URL.Path, r.Proto, w.StatusCode)
 			return
 		}
-		file, err := d.Open(r.URL.Path)
 		w.Header.Set("Server", "Slug")
 		w.Header.Set("Date", time.Now().Format(time.RFC1123))
+		file, err := d.Open(r.URL.Path)
 		if err != nil {
 			log.Println(err.Error())
 			w.StatusCode = StatusNotFound

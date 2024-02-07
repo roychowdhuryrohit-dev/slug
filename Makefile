@@ -5,7 +5,7 @@ all: local
 build_local:
 	go build -o bin/slug
 run_local:
-	. ./.env && ./bin/slug -document_root $$DOCUMENT_ROOT -port $$PORT -timeout $$TIMEOUT
+	. ./.env && ./bin/slug -document_root=$$DOCUMENT_ROOT -port=$$PORT -timeout=$$TIMEOUT
 local: build_local run_local
 
 build_docker:
@@ -13,7 +13,7 @@ build_docker:
 	docker images slug
 run_docker:
 	. ./.env && \
-	docker run --env DOCUMENT_ROOT=$$DOCUMENT_ROOT --env PORT=$$PORT --env TIMEOUT=$$TIMEOUT -p $$port:$$port slug 
+	docker run --env DOCUMENT_ROOT=$$DOCUMENT_ROOT --env PORT=$$PORT --env TIMEOUT=$$TIMEOUT -p $$PORT:$$PORT slug 
 clean_docker:
 	docker container kill $$(docker container ls -aq); \
 	docker rm $$(docker ps -a -q) \

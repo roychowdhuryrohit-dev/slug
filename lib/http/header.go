@@ -19,9 +19,13 @@ func (h Header) Set(key, value string) {
 }
 
 func (h Header) Get(key string) (string, bool) {
+
 	key = textproto.CanonicalMIMEHeaderKey(key)
 	val, ok := h[key]
-	return val[0], ok
+	if ok {
+		return val[0], ok
+	}
+	return "", false
 }
 
 func (h Header) GetValues(key string) ([]string, bool) {

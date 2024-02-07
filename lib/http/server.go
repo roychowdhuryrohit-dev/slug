@@ -67,7 +67,7 @@ func (srv *Server) acceptConnections() {
 		default:
 			conn, err := srv.listener.Accept()
 			if err != nil {
-				log.Printf("unable to accept connect on address %s", srv.Addr)
+				log.Printf("unable to accept connection on address %s", srv.Addr)
 				continue
 			}
 			srv.connection <- conn
@@ -85,17 +85,21 @@ func (srv *Server) handleConnections() {
 			return
 		case conn := <-srv.connection:
 			req := &Request{
-				conn: conn,
+				conn:   conn,
+				Header: make(Header),
 			}
-			req.ReadRequest()
+			if err := req.ReadRequest(); err != nil {
+				log.Println(err.Error())
+			}
+
 			res := &Response{
 				Request: req,
+				Header:  make(Header),
 			}
 			if c, ok := req.Header.Get("Connection"); ok && c == "keep-alive" && req.Proto == "HTTP/1.1" {
 				conn.(*net.TCPConn).SetKeepAlive(true)
 				conn.(*net.TCPConn).SetKeepAlivePeriod(time.Second * time.Duration(srv.getKeepAliveHeuristic(-1)))
 			}
-
 			handler, err := srv.Router.GetRoute(req.URL.Path)
 
 			if err != nil {

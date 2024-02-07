@@ -15,18 +15,21 @@ import (
 
 func main() {
 	config.SetupConfig()
-	port, _ := config.ConfigMap.Load(config.Port)
-	dirPath, _ := config.ConfigMap.Load(config.DocumentRoot)
-	timeout, _ := config.ConfigMap.Load(config.Timeout)
+	portConfig, _ := config.ConfigMap.Load(config.Port)
+	port, _ := portConfig.(*string)
+	dirPathConfig, _ := config.ConfigMap.Load(config.DocumentRoot)
+	dirPath, _ := dirPathConfig.(*string)
+	timeoutEnvConfig, _ := config.ConfigMap.Load(config.Timeout)
+	timeout, _ := timeoutEnvConfig.(*int)
 
 	router := http.NewFileRouter()
-	handler, err := http.FileServer(dirPath.(http.Dir))
+	handler, err := http.FileServer(http.Dir(*dirPath))
 	if err != nil {
 		log.Panicln(err.Error())
 	}
 	router.AddRoute("/", handler)
 	srv := &http.Server{
-		Addr:   fmt.Sprintf(":%s", port),
+		Addr:   fmt.Sprintf(":%s", *port),
 		Router: router,
 	}
 
@@ -42,10 +45,10 @@ func main() {
 
 	<-exit
 	log.Println("shutting down server")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout.(int))*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeout)*time.Second)
 	defer func() {
 		cancel()
 	}()
 	srv.Shutdown(ctx)
-	
+
 }

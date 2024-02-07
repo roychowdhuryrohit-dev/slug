@@ -35,19 +35,23 @@ func (r *Request) ReadRequest() error {
 		return errors.New("unable to parse request header line (no connection found)")
 	}
 	reader := bufio.NewReader(r.conn)
-
+	statusLineProcessed := false
 	for {
 		message, err := reader.ReadString('\n')
-
 		if err != nil {
-			return errors.New("unable to parse request header line (no newline found)")
+			// return errors.New("unable to parse request header line (no newline found)")
+			return err
 		}
 		headerKey, headerValues, found := strings.Cut(message, " ")
 		if !found {
 			return fmt.Errorf("unable to parse request header line (no whitespace found) - %s", message)
 		}
 		headerKey, _ = strings.CutSuffix(headerKey, ":")
-		headerKey = textproto.CanonicalMIMEHeaderKey(headerKey)
+		if statusLineProcessed {
+			headerKey = textproto.CanonicalMIMEHeaderKey(headerKey)
+		}
+		statusLineProcessed = true
+		headerValues = strings.Replace(headerValues, "\r\n", "", -1)
 		switch headerKey {
 		case "GET", "POST", "PUT", "DELETE":
 			if r.Method == "" {
@@ -164,4 +168,5 @@ func (w *Response) WriteBody() error {
 
 func (w *Response) Flush() {
 	defer w.writer.Flush()
+
 }
