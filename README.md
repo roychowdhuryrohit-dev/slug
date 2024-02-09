@@ -8,7 +8,7 @@
   - The HTTP framework has been built from the groundup, focusing on modularity, customisability and extendibility. It features a router-handler style library which can be imported to build REST APIs. 
   - Currently only supports HTTP/1.0 and HTTP/1.1 protocols accroding to the project requirements.
   - Each request is handled by a seperate Goroutine lightweight thread.
-  - Gracefully shuts down the server when OS signals like SIGINT, SIGKILL are sent. The maximum amount of time taken by the server to wait for pending requests is configurable.
+  - Gracefully shuts down the server when OS signals like _SIGINT_ & _SIGTERM_ are caught. The maximum amount of time taken by the server to wait for pending requests is configurable.
   - Uses heuristics to determine the timeout for `keep-alive` based on number of active connections.
 
 ## Usage
