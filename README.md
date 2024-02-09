@@ -13,7 +13,7 @@
 
 ## Usage
 
-Make sure go is installed and set in the path.
+Make sure `go` is installed and set in the path.
 ```
 $ brew install go
 ```
