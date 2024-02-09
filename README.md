@@ -26,3 +26,6 @@ An executable will be generated in `bin/` directory. To run it,
 # run slug server and visit localhost:8080 on browser
 $ ./bin/slug -document_root=/Users/www/scu.edu -port=8080 -timeout=5
 ```
+<img align="left" width="550px" src="https://github.com/roychowdhuryrohit-dev/slug/assets/24897721/1e0574e8-e2fc-4064-b950-a7fd7ac21181">
+
+
