@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
+	"runtime"
 	"sync"
 	"time"
 )
+
+var numCPU int = runtime.NumCPU()
 
 type Handler func(*Request, *Response)
 
@@ -19,16 +23,16 @@ type Router interface {
 
 type ConnectionWatcher struct {
 	mu        sync.RWMutex
-	connCount int64
+	connCount int
 }
 
 func (cw *ConnectionWatcher) UpdateCount(c int) {
 	cw.mu.Lock()
-	cw.connCount += int64(c)
+	cw.connCount += c
 	cw.mu.Unlock()
 }
 
-func (cw *ConnectionWatcher) GetCount() int64 {
+func (cw *ConnectionWatcher) GetCount() int {
 	cw.mu.RLocker().Lock()
 	c := cw.connCount
 	cw.mu.RLocker().Unlock()
@@ -138,8 +142,7 @@ func (srv *Server) handleConnection(conn net.Conn) {
 			return 0
 		}
 		var timeout, max int
-		//if c, ok := req.Header.Get("Connection"); ok && c == "keep-alive" && req.Proto == "HTTP/1.1" {
-		if req.Proto == "HTTP/1.1" {
+		if c, ok := req.Header.Get("Connection"); ok && c == "keep-alive" && req.Proto == "HTTP/1.1" {
 			conCount := srv.cw.GetCount()
 			timeout, max = getKeepAliveHeuristic(conCount)
 			conn.(*net.TCPConn).SetKeepAlive(true)
@@ -189,7 +192,10 @@ func (srv *Server) Shutdown(ctx context.Context) {
 	}
 }
 
-func getKeepAliveHeuristic(connCount int64) (int, int) {
-	
-	return 5, 100
+func getKeepAliveHeuristic(connCount int) (int, int) {
+	usableCPU := numCPU - 1
+	scalingFactor := 2.0
+	timeout := 15 / (1 + math.Exp(scalingFactor*float64(connCount-usableCPU)))
+
+	return int(math.Ceil(timeout)), 100
 }
