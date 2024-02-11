@@ -113,7 +113,9 @@ func FileServer(d Dir) (Handler, error) {
 	}
 
 	fileHandler := func(r *Request, w *Response) {
-		defer w.Flush()
+		defer func() {
+			w.Flush()
+		}()
 		d := d
 		reqPath := r.URL.Path
 		if strings.HasSuffix(reqPath, "/") {

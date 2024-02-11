@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/textproto"
 	"net/url"
@@ -38,13 +39,16 @@ func (r *Request) ReadRequest() error {
 	statusLineProcessed := false
 	for {
 		message, err := reader.ReadString('\n')
+
 		if err != nil {
+			if len(message) == 0 && err == io.EOF {
+				return err
+			}
 			return errors.New("unable to parse request header line (no newline found)")
 		}
 		if strings.HasPrefix(message, "\r\n") {
 			break
 		}
-		// fmt.Print(strings.Cut(message, " "))
 		headerKey, headerValues, found := strings.Cut(message, " ")
 		if !found {
 			return fmt.Errorf("unable to parse request header line (no whitespace found) - %s", message)
@@ -63,7 +67,8 @@ func (r *Request) ReadRequest() error {
 				if !found {
 					return fmt.Errorf("unable to parse request header line (no whitespace found) - %s", headerValues)
 				}
-				r.URL, err = url.ParseRequestURI(urlMessage)
+				url, err := url.ParseRequestURI(urlMessage)
+				r.URL = url
 				if err != nil {
 					return errors.New("unable to parse request header line (invalid request URL)")
 				}
@@ -171,7 +176,8 @@ func (w *Response) WriteBody() error {
 }
 
 func (w *Response) Flush() {
-	defer w.Request.conn.Close()
-	defer w.writer.Flush()
+	defer func() {
+		w.writer.Flush()
+	}()
 
 }

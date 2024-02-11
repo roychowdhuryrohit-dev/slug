@@ -40,7 +40,9 @@ func NewBasicRouter() *BasicRouter {
 }
 
 func ErrorHandler(r *Request, w *Response) {
-	defer w.Flush()
+	defer func() {
+		w.Flush()
+	}()
 	if err := w.WriteStatusLine(); err != nil {
 		log.Println(err.Error())
 	}
