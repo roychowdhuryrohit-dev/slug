@@ -121,17 +121,14 @@ func FileServer(d Dir) (Handler, error) {
 		if strings.HasSuffix(reqPath, "/") {
 			w.StatusCode = StatusMovedPermanently
 			w.Header.Set("Location", fmt.Sprintf("%sindex.html", reqPath))
+			w.Header.Set("Content-Length", "0")
 			if err := w.WriteStatusLine(); err != nil {
 				log.Println(err.Error())
 			}
 			if err := w.WriteHeader(); err != nil {
 				log.Println(err.Error())
 			}
-			host, ok := r.Header.Get("Host")
-			if !ok {
-				host = ""
-			}
-			log.Printf("%s %s %s %s %v\n", host, r.Method, r.URL.Path, r.Proto, w.StatusCode)
+			log.Printf("%s %s %s %v\n", r.Method, r.URL.Path, r.Proto, w.StatusCode)
 			return
 		}
 		w.Header.Set("Server", "Slug")

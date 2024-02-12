@@ -122,7 +122,7 @@ func (srv *Server) handleConnection(conn net.Conn) {
 	defer srv.cw.UpdateCount(-1)
 	defer conn.Close()
 
-	handleRequest := func() int {
+	handleRequest := func() (int, error) {
 		req := &Request{
 			conn:   conn,
 			Header: make(Header),
@@ -134,12 +134,12 @@ func (srv *Server) handleConnection(conn net.Conn) {
 
 		if err := req.ReadRequest(); err != nil {
 			if err == io.EOF {
-				return -1
+				return 0, err
 			}
 			log.Println(err.Error())
 			res.StatusCode = StatusInternalServerError
 			ErrorHandler(req, res)
-			return 0
+			return 0, err
 		}
 		var timeout, max int
 		if c, ok := req.Header.Get("Connection"); ok && c == "keep-alive" && req.Proto == "HTTP/1.1" {
@@ -156,12 +156,12 @@ func (srv *Server) handleConnection(conn net.Conn) {
 			ErrorHandler(req, res)
 		}
 		handler(req, res)
-		return timeout
+		return timeout, nil
 	}
 	var timer <-chan time.Time
 
 	for {
-		if timeout := handleRequest(); timeout != -1 {
+		if timeout, err := handleRequest(); err != io.EOF {
 			timer = time.After(time.Duration(timeout) * time.Second)
 		}
 		select {
